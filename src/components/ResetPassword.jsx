@@ -17,19 +17,6 @@ const ResetPassword = () => {
 
   const checkSession = async () => {
     try {
-      // Parse hash fragment for reset token
-      const hashFragment = window.location.hash.substring(1);
-
-      if (hashFragment) {
-        // Let Supabase handle the hash automatically
-        await supabase.auth.onAuthStateChange((event, session) => {
-          if (event === "PASSWORD_RECOVERY" && session) {
-            setIsLoading(false);
-            return;
-          }
-        });
-      }
-
       const {
         data: { session },
         error,
@@ -56,14 +43,11 @@ const ResetPassword = () => {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
 
     if (!newPassword || !confirmPassword) {
       setError("Please fill in all fields");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters");
       return;
     }
 
@@ -72,23 +56,31 @@ const ResetPassword = () => {
       return;
     }
 
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
 
-    setMessage("Password reset successful! Redirecting...");
-    setTimeout(() => navigate("/"), 2000);
-    setLoading(false);
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      await supabase.auth.signOut();
+
+      setMessage("✅ Password reset successfully! Redirecting to login...");
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (err) {
+      setError(err.message || "Failed to reset password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
