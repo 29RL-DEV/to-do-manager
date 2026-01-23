@@ -119,7 +119,10 @@ export function AuthProvider({ children }) {
       }
 
       console.log("✅ Reset password email sent successfully!");
-      return { success: true };
+      return {
+        success: true,
+        message: "Password reset email sent! Check your inbox.",
+      };
     } catch (err) {
       const message = err.message || "Reset password email failed.";
       console.error("❌ Reset password exception:", message);
