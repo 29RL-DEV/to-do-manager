@@ -82,12 +82,12 @@ const TaskList = () => {
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)]">
       {/* NAVBAR */}
       <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-[var(--bg-nav)] flex items-center px-4">
-        <div className="max-w-6xl w-full mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-semibold">To-do List</h1>
+        <div className="max-w-6xl w-full mx-auto flex items-center justify-center relative">
+          <h1 className="text-lg font-semibold">📋 To-do List</h1>
 
           <button
             onClick={handleLogout}
-            className="text-sm font-semibold bg-green-600 hover:bg-green-500 px-4 py-1.5 rounded-lg transition"
+            className="absolute right-0 text-sm font-semibold bg-green-600 hover:bg-green-500 px-4 py-1.5 rounded-lg transition"
           >
             Logout
           </button>
