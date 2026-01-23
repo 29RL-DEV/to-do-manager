@@ -15,9 +15,12 @@ const ResetPassword = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Așteaptă puțin ca Supabase să proceseze hash-ul din URL
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        console.log("🔍 Starting token validation...");
 
+        // 1. Lasă Supabase să proceseze URL-ul și sesiunea
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // 2. Verifica dacă Supabase a detectat sesiunea din URL
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -25,29 +28,57 @@ const ResetPassword = () => {
         console.log("🔍 Session check:", session ? "✅ Valid" : "❌ None");
 
         if (session) {
-          // Dacă avem sesiune validă din recovery link
+          console.log("✅ Session found from URL!");
           setValidToken(true);
           setCheckingToken(false);
           return;
         }
 
-        // Verificare manuală în caz că detectSessionInUrl nu a funcționat
+        // 3. Dacă Supabase nu a detectat, verifica manual
         const hashParams = new URLSearchParams(
           window.location.hash.substring(1),
         );
         const accessToken = hashParams.get("access_token");
         const type = hashParams.get("type");
 
-        console.log("🔍 URL params:", { type, hasToken: !!accessToken });
+        console.log("🔍 URL hash params:", {
+          type,
+          accessTokenLength: accessToken ? accessToken.length : 0,
+          fullURL: window.location.href,
+        });
 
         if (type === "recovery" && accessToken) {
+          console.log("🔍 Token found in URL, verifying with Supabase...");
+
+          // 4. Verify the token with Supabase
+          const { data, error: verifyError } =
+            await supabase.auth.verifyOtp({
+              token_hash: accessToken,
+              type: "recovery",
+            });
+
+          if (verifyError) {
+            console.error("❌ Token verification failed:", verifyError);
+            setError(
+              "Invalid or expired reset link. Please request a new one.",
+            );
+            setCheckingToken(false);
+            return;
+          }
+
+          console.log("✅ Token verified successfully!");
           setValidToken(true);
         } else {
+          console.error(
+            "❌ Missing type or token:",
+            type,
+            accessToken ? "✅" : "❌",
+          );
           setError("Invalid or expired reset link. Please request a new one.");
         }
       } catch (err) {
         console.error("❌ Session check error:", err);
-        setError("Error validating reset link. Please try again.");
+        setError(err.message || "Error validating reset link. Please try again.");
       } finally {
         setCheckingToken(false);
       }
@@ -79,11 +110,19 @@ const ResetPassword = () => {
     setMessage("");
 
     try {
+      console.log("🔄 Attempting to update password...");
+
+      // updateUser trebuie folosit cu sesiune validă
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("❌ Password update error:", updateError);
+        throw updateError;
+      }
+
+      console.log("✅ Password updated successfully!");
 
       // Sign out după reset
       await supabase.auth.signOut();
@@ -94,10 +133,12 @@ const ResetPassword = () => {
         navigate("/login");
       }, 2000);
     } catch (err) {
-      console.error("❌ Password update error:", err);
+      console.error("❌ Password reset exception:", err);
       setError(err.message || "Failed to reset password. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
     }
   };
 

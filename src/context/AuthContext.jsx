@@ -104,16 +104,25 @@ export function AuthProvider({ children }) {
   const resetPassword = async (email) => {
     setError(null);
     try {
+      console.log("🔄 Sending reset password email to:", email);
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email,
         {
           redirectTo: `${window.location.origin}/reset-password`,
         },
       );
-      if (resetError) throw resetError;
+
+      if (resetError) {
+        console.error("❌ Reset password error:", resetError);
+        throw resetError;
+      }
+
+      console.log("✅ Reset password email sent successfully!");
       return { success: true };
     } catch (err) {
       const message = err.message || "Reset password email failed.";
+      console.error("❌ Reset password exception:", message);
       setError(message);
       return { success: false, error: message };
     }

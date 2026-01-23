@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import "./index.css";
 import TaskList from "./components/TaskList";
 import LoginForm from "./components/LoginForm";
+import ResetPassword from "./components/ResetPassword";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 /* =========================
    ERROR BOUNDARY
@@ -49,6 +51,7 @@ class ErrorBoundary extends React.Component {
 ========================= */
 function AppContent() {
   const { isAuthenticated, loading, logout } = useAuth();
+  const location = useLocation();
   const [error, setError] = useState(null);
 
   if (loading) {
@@ -59,40 +62,51 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <LoginForm onLoginSuccess={() => setError(null)} />;
-  }
-
   return (
-    <>
-      {/* ================= NAV ================= */}
-      <nav className="app-nav">
-        <div className="nav-inner">
-          <h1 className="nav-title">📋 To-do List</h1>
-          <button className="nav-button" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </nav>
+    <Routes>
+      {/* Reset Password Route - public (no auth needed) */}
+      <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* ================= ERROR ================= */}
-      {error && (
-        <div className="error-box">
-          {error}
-          <button onClick={() => setError(null)}>Dismiss</button>
-        </div>
-      )}
+      {/* Protected Routes */}
+      <Route
+        path="*"
+        element={
+          !isAuthenticated ? (
+            <LoginForm onLoginSuccess={() => setError(null)} />
+          ) : (
+            <>
+              {/* ================= NAV ================= */}
+              <nav className="app-nav">
+                <div className="nav-inner">
+                  <h1 className="nav-title">📋 To-do List</h1>
+                  <button className="nav-button" onClick={logout}>
+                    Logout
+                  </button>
+                </div>
+              </nav>
 
-      {/* ================= MAIN ================= */}
-      <main className="app-main">
-        <ErrorBoundary>
-          <TaskList />
-        </ErrorBoundary>
-      </main>
+              {/* ================= ERROR ================= */}
+              {error && (
+                <div className="error-box">
+                  {error}
+                  <button onClick={() => setError(null)}>Dismiss</button>
+                </div>
+              )}
 
-      {/* ================= FOOTER ================= */}
-      <footer className="app-footer">Built by 29RL.DEV</footer>
-    </>
+              {/* ================= MAIN ================= */}
+              <main className="app-main">
+                <ErrorBoundary>
+                  <TaskList />
+                </ErrorBoundary>
+              </main>
+
+              {/* ================= FOOTER ================= */}
+              <footer className="app-footer">Built by 29RL.DEV</footer>
+            </>
+          )
+        }
+      />
+    </Routes>
   );
 }
 
