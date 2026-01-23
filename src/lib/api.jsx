@@ -251,7 +251,3 @@ export const taskAPI = {
 };
 
 export default { authAPI, taskAPI };
-
-
-
-

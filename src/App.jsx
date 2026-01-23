@@ -1,10 +1,10 @@
 import React, { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
 import TaskList from "./components/TaskList";
 import LoginForm from "./components/LoginForm";
 import ResetPassword from "./components/ResetPassword";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { Routes, Route, useLocation } from "react-router-dom";
 
 /* =========================
    ERROR BOUNDARY
@@ -50,8 +50,7 @@ class ErrorBoundary extends React.Component {
    APP CONTENT
 ========================= */
 function AppContent() {
-  const { isAuthenticated, loading, logout } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, loading } = useAuth();
   const [error, setError] = useState(null);
 
   if (loading) {
@@ -64,49 +63,54 @@ function AppContent() {
 
   return (
     <Routes>
-      {/* Reset Password Route - public (no auth needed) */}
       <Route path="/reset-password" element={<ResetPassword />} />
-
-      {/* Protected Routes */}
       <Route
-        path="*"
+        path="/"
         element={
           !isAuthenticated ? (
             <LoginForm onLoginSuccess={() => setError(null)} />
           ) : (
-            <>
-              {/* ================= NAV ================= */}
-              <nav className="app-nav">
-                <div className="nav-inner">
-                  <h1 className="nav-title">📋 To-do List</h1>
-                  <button className="nav-button" onClick={logout}>
-                    Logout
-                  </button>
-                </div>
-              </nav>
-
-              {/* ================= ERROR ================= */}
-              {error && (
-                <div className="error-box">
-                  {error}
-                  <button onClick={() => setError(null)}>Dismiss</button>
-                </div>
-              )}
-
-              {/* ================= MAIN ================= */}
-              <main className="app-main">
-                <ErrorBoundary>
-                  <TaskList />
-                </ErrorBoundary>
-              </main>
-
-              {/* ================= FOOTER ================= */}
-              <footer className="app-footer">Built by 29RL.DEV</footer>
-            </>
+            <ProtectedApp error={error} setError={setError} />
           )
         }
       />
     </Routes>
+  );
+}
+
+function ProtectedApp({ error, setError }) {
+  const { logout } = useAuth();
+
+  return (
+    <>
+      {/* ================= NAV ================= */}
+      <nav className="app-nav">
+        <div className="nav-inner">
+          <h1 className="nav-title">📋 To-do List</h1>
+          <button className="nav-button" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </nav>
+
+      {/* ================= ERROR ================= */}
+      {error && (
+        <div className="error-box">
+          {error}
+          <button onClick={() => setError(null)}>Dismiss</button>
+        </div>
+      )}
+
+      {/* ================= MAIN ================= */}
+      <main className="app-main">
+        <ErrorBoundary>
+          <TaskList />
+        </ErrorBoundary>
+      </main>
+
+      {/* ================= FOOTER ================= */}
+      <footer className="app-footer">Built by 29RL.DEV</footer>
+    </>
   );
 }
 
@@ -115,8 +119,10 @@ function AppContent() {
 ========================= */
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

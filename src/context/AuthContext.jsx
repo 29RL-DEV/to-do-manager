@@ -14,13 +14,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   const checkAuth = async () => {
+    // #check_session
     try {
       setError(null);
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
+
       if (sessionError) throw sessionError;
+
       setUser(session?.user || null);
     } catch (err) {
       console.error("Auth check failed:", err);
@@ -43,6 +46,7 @@ export function AuthProvider({ children }) {
   };
 
   const login = async (email, password) => {
+    // #signin
     setError(null);
     setLoading(true);
     try {
@@ -51,7 +55,9 @@ export function AuthProvider({ children }) {
           email,
           password,
         });
+
       if (signInError) throw signInError;
+
       setUser(data.user);
       return { success: true };
     } catch (err) {
@@ -65,6 +71,7 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async (email, password, username) => {
+    // #register
     setError(null);
     setLoading(true);
     try {
@@ -75,7 +82,9 @@ export function AuthProvider({ children }) {
           data: { username },
         },
       });
+
       if (signUpError) throw signUpError;
+
       setUser(data.user);
       return { success: true };
     } catch (err) {
@@ -92,6 +101,7 @@ export function AuthProvider({ children }) {
     try {
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) throw signOutError;
+
       setUser(null);
       return { success: true };
     } catch (err) {
@@ -104,28 +114,18 @@ export function AuthProvider({ children }) {
   const resetPassword = async (email) => {
     setError(null);
     try {
-      console.log("🔄 Sending reset password email to:", email);
-
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email,
         {
-          redirectTo: import.meta.env.VITE_RESET_URL,
+          redirectTo: `${window.location.origin}/reset-password`,
         },
       );
 
-      if (resetError) {
-        console.error("❌ Reset password error:", resetError);
-        throw resetError;
-      }
+      if (resetError) throw resetError;
 
-      console.log("✅ Reset password email sent successfully!");
-      return {
-        success: true,
-        message: "Password reset email sent! Check your inbox.",
-      };
+      return { success: true };
     } catch (err) {
       const message = err.message || "Reset password email failed.";
-      console.error("❌ Reset password exception:", message);
       setError(message);
       return { success: false, error: message };
     }
@@ -152,4 +152,3 @@ export function useAuth() {
   }
   return context;
 }
-       

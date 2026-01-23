@@ -1,176 +1,161 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-export default function Auth() {
-  const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-
-  const [mode, setMode] = useState("login"); // login | register | forgot
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+const ResetPassword = () => {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate("/dashboard");
+    checkSession();
+  }, []);
+
+  const checkSession = async () => {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        setError("Invalid or expired reset link. Please request a new one.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!session) {
+        setError("No active session. Please use the link from your email.");
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(false);
+    } catch (err) {
+      setError("Invalid reset link. Please request a new one.");
+      setIsLoading(false);
     }
-  }, [user, authLoading, navigate]);
+  };
 
-  if (authLoading) {
-    return (
-      <div className="auth-page">
-        <div className="auth-container">
-          <div className="auth-card">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (user) return null;
-
-  const handleSubmit = async (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
 
-    if (!email || (mode !== "forgot" && !password)) {
+    if (!newPassword || !confirmPassword) {
       setError("Please fill in all fields");
       return;
     }
 
-    setLoading(true);
-
-    try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        navigate("/dashboard");
-      }
-
-      if (mode === "register") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        setSuccess("Account created. You can login now.");
-        setMode("login");
-      }
-
-      if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: "https://saas-rho-one.vercel.app/reset-password",
-        });
-        if (error) throw error;
-        setSuccess("Reset email sent. Check your inbox.");
-        setMode("login");
-      }
-    } catch (err) {
-      setError(err.message);
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
     }
 
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    setMessage("Password reset successful! Redirecting...");
+    setTimeout(() => navigate("/"), 2000);
     setLoading(false);
   };
 
   return (
-    <div className="auth-page">
-      {/* BACK TO PORTFOLIO */}
-      <a
-        href="https://29rl.dev"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="auth-back"
-      >
-        ← Portfolio
-      </a>
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-main)]">
+      {/* NAV */}
+      <header className="fixed top-0 left-0 right-0 h-12 bg-[var(--bg-nav)] flex items-center px-4 z-50">
+        <a
+          href="https://29rl.dev/?from=taskmanager&return=/"
+          className="text-green-400 text-xs font-semibold border border-green-400/40 px-3 py-1 rounded-md hover:bg-green-400/10 transition"
+        >
+          ← Portfolio
+        </a>
+      </header>
 
-      {/* AUTH CONTAINER */}
-      <div className="auth-container">
-        <div className="auth-card">
-          {mode !== "forgot" && (
-            <div className="auth-tabs">
-              <button
-                type="button"
-                className={mode === "login" ? "active" : ""}
-                onClick={() => setMode("login")}
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                className={mode === "register" ? "active" : ""}
-                onClick={() => setMode("register")}
-              >
-                Register
-              </button>
+      {/* MAIN */}
+      <main className="flex-1 flex items-center justify-center px-4 pt-20 pb-16">
+        <div className="bg-custom-card w-full max-w-md p-6 rounded-2xl shadow-2xl">
+          <h1 className="text-2xl font-bold text-center mb-2">
+            Reset Password
+          </h1>
+          <p className="text-sm text-muted text-center mb-6">
+            Enter your new password
+          </p>
+
+          {error && (
+            <div className="mb-4 text-sm text-red-300 bg-red-500/10 border border-red-500/40 p-3 rounded-lg">
+              {error}
             </div>
           )}
 
-          {error && <div className="auth-error">{error}</div>}
-          {success && <div className="auth-success">{success}</div>}
-
-          <form onSubmit={handleSubmit}>
-            <input
-              className="auth-input"
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            {mode !== "forgot" && (
-              <input
-                className="auth-input"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            )}
-
-            <button className="auth-button" disabled={loading}>
-              {mode === "login" && "Login"}
-              {mode === "register" && "Create account"}
-              {mode === "forgot" && "Send reset email"}
-            </button>
-          </form>
-
-          {mode === "login" && (
-            <button
-              type="button"
-              className="auth-link-button"
-              onClick={() => setMode("forgot")}
-            >
-              Forgot password?
-            </button>
+          {message && (
+            <div className="mb-4 text-sm text-green-300 bg-green-500/10 border border-green-500/40 p-3 rounded-lg">
+              {message}
+            </div>
           )}
 
-          {mode === "forgot" && (
-            <button
-              type="button"
-              className="auth-link-button"
-              onClick={() => setMode("login")}
-            >
-              Back to login
-            </button>
+          {isLoading ? (
+            <div className="text-center text-muted">Loading...</div>
+          ) : error ? (
+            <div className="text-center text-red-300">{error}</div>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <input
+                type="password"
+                placeholder="New password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-transparent border border-[var(--border-main)] focus:border-green-400 outline-none text-sm"
+              />
+              <input
+                type="password"
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-transparent border border-[var(--border-main)] focus:border-green-400 outline-none text-sm"
+              />
+              <button
+                disabled={loading}
+                className="w-full py-3 bg-green-600 hover:bg-green-500 rounded-lg font-semibold transition"
+              >
+                {loading ? "Resetting..." : "Reset Password"}
+              </button>
+            </form>
           )}
         </div>
-      </div>
+      </main>
 
       {/* FOOTER */}
-      <footer className="app-footer">
-        Built by{" "}
-        <a href="https://29rl.dev" target="_blank" rel="noopener noreferrer">
-          29RL.DEV
+      <footer className="h-12 flex items-center justify-center text-xs text-muted border-t border-[var(--border-main)]">
+        <a
+          href="https://29rl.dev"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:text-green-400 transition"
+        >
+          Built by 29RL.DEV
         </a>
       </footer>
     </div>
   );
-}
+};
+
+export default ResetPassword;

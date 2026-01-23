@@ -64,19 +64,10 @@ const LoginForm = () => {
     setLoading(true);
     setMessage("");
 
-    const result = await resetPassword(loginData.email);
+    await resetPassword(loginData.email);
 
-    if (result.success) {
-      setMessage(
-        result.message || "Password reset email sent! Check your inbox.",
-      );
-      setLoginData({ email: "", password: "" });
-      setTimeout(() => {
-        setMode("login");
-        setMessage("");
-      }, 3000);
-    }
-
+    setMessage("Password reset email sent. Check your inbox.");
+    setMode("login");
     setLoading(false);
   };
 
