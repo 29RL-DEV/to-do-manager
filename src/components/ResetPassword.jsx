@@ -15,13 +15,9 @@ const ResetPassword = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        console.log("🔍 Starting token validation...");
-        console.log("📍 Current URL:", window.location.href);
+        // Așteaptă puțin ca Supabase să proceseze hash-ul din URL
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // 1. Wait for Supabase to process the URL
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // 2. Check if Supabase detected the session from URL
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -29,45 +25,29 @@ const ResetPassword = () => {
         console.log("🔍 Session check:", session ? "✅ Valid" : "❌ None");
 
         if (session) {
-          console.log("✅ Session found from URL!");
+          // Dacă avem sesiune validă din recovery link
           setValidToken(true);
           setCheckingToken(false);
           return;
         }
 
-        // 3. Manual check - parse URL hash parameters
+        // Verificare manuală în caz că detectSessionInUrl nu a funcționat
         const hashParams = new URLSearchParams(
           window.location.hash.substring(1),
         );
         const accessToken = hashParams.get("access_token");
         const type = hashParams.get("type");
 
-        console.log("🔍 URL hash params:", {
-          type,
-          accessTokenLength: accessToken ? accessToken.length : 0,
-        });
+        console.log("🔍 URL params:", { type, hasToken: !!accessToken });
 
         if (type === "recovery" && accessToken) {
-          console.log("🔍 Recovery token found in URL");
-          console.log("🔄 Setting valid token without verification...");
-
-          // For recovery flow with PKCE, Supabase should have already processed it
-          // If detectSessionInUrl is true, the session should be set automatically
-          // If not, we just mark it as valid so user can reset password
           setValidToken(true);
         } else {
-          console.error(
-            "❌ Missing type or token:",
-            type,
-            accessToken ? "✅" : "❌",
-          );
           setError("Invalid or expired reset link. Please request a new one.");
         }
       } catch (err) {
         console.error("❌ Session check error:", err);
-        setError(
-          err.message || "Error validating reset link. Please try again.",
-        );
+        setError("Error validating reset link. Please try again.");
       } finally {
         setCheckingToken(false);
       }
@@ -99,32 +79,11 @@ const ResetPassword = () => {
     setMessage("");
 
     try {
-      console.log("🔄 Attempting to update password...");
-
-      // Get current session to verify we're authenticated
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      console.log("🔍 Current session before update:", session ? "✅" : "❌");
-
-      if (!session) {
-        throw new Error(
-          "No active session. Reset link may have expired. Please request a new one.",
-        );
-      }
-
-      // updateUser trebuie folosit cu sesiune validă
-      const { data, error: updateError } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
-      if (updateError) {
-        console.error("❌ Password update error:", updateError);
-        throw updateError;
-      }
-
-      console.log("✅ Password updated successfully!");
+      if (updateError) throw updateError;
 
       // Sign out după reset
       await supabase.auth.signOut();
@@ -135,7 +94,7 @@ const ResetPassword = () => {
         navigate("/login");
       }, 2000);
     } catch (err) {
-      console.error("❌ Password reset exception:", err);
+      console.error("❌ Password update error:", err);
       setError(err.message || "Failed to reset password. Please try again.");
     } finally {
       setLoading(false);
