@@ -109,7 +109,7 @@ export function AuthProvider({ children }) {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email,
         {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: "https://to-do-manager-smoky.vercel.app/reset-password",
         },
       );
 
