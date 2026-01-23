@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
 import TaskList from "./components/TaskList";
 import LoginForm from "./components/LoginForm";
@@ -119,10 +119,8 @@ function ProtectedApp({ error, setError }) {
 ========================= */
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
