@@ -17,6 +17,19 @@ const ResetPassword = () => {
 
   const checkSession = async () => {
     try {
+      // Parse hash fragment for reset token
+      const hashFragment = window.location.hash.substring(1);
+
+      if (hashFragment) {
+        // Let Supabase handle the hash automatically
+        await supabase.auth.onAuthStateChange((event, session) => {
+          if (event === "PASSWORD_RECOVERY" && session) {
+            setIsLoading(false);
+            return;
+          }
+        });
+      }
+
       const {
         data: { session },
         error,
